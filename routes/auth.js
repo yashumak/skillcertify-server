@@ -1,5 +1,6 @@
 import express from "express";
 import bcrypt from "bcryptjs";
+import { connectDB } from "../lib/mongodb.js";
 import User from "../models/User.js";
 
 const router = express.Router();
@@ -10,6 +11,13 @@ router.post("/signup", async (req, res) => {
 
   if (!name || !email || !password) {
     return res.status(400).json({ error: "All fields are required" });
+  }
+
+  try {
+    await connectDB();
+  } catch (err) {
+    console.error("Database connection error:", err);
+    return res.status(500).json({ error: "Database connection failed" });
   }
 
   try {
@@ -46,8 +54,15 @@ router.post("/login", async (req, res) => {
   }
 
   try {
-    const trimmedEmail = email.trim().toLowerCase();
+    await connectDB();
+  } catch (err) {
+    console.error("Database connection error:", err);
+    return res.status(500).json({ error: "Database connection failed" });
+  }
 
+  try {
+    const trimmedEmail = email.trim().toLowerCase();
+    
     const user = await User.findOne({ email: trimmedEmail });
     if (!user) {
       return res.status(401).json({ error: "Invalid credentials" });
@@ -59,7 +74,7 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    res.status(200).json({
+    res.status(200).json({ 
       message: "Login successful",
       user: {
         id: user._id,
